@@ -1,0 +1,10 @@
+*
+!*/
+!*.php
+!*.py
+!*.html
+!*.sh
+!.gitignore
+!.ht*
+!*.js
+!*.conf

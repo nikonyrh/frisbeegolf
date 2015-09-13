@@ -1,0 +1,264 @@
+﻿<html>
+<head>
+    <meta charset="utf-8"/>
+    <script src="//code.jquery.com/jquery-2.1.1.min.js"></script>
+    <style>
+    ul.nobutton {
+        list-style-type: none;
+        margin: 0px;
+        padding: 0px;
+    }
+    
+    tr.header td {
+        background: #CCCCCC;
+    }
+    
+    td.side {
+        background: #CCCCCC;
+    }
+    
+    td.active {
+        background: #44FF44;
+    }
+    
+    input.arrow {
+        height: 6em;
+        width:  6em;
+    }
+    </style>
+</head>
+<body>
+<div id=start>
+    <p><ul class=nobutton id=players></ul></p>
+    <p><ul class=nobutton id=maps></ul></p>
+    <hr/>
+    <input type=button value=Start id="startBtn"/>
+</div>
+
+<div id=scores style="display: none">
+    <div id=scoreContainer style="display: inline-block">
+    <center>
+    <!-- Codes from http://stackoverflow.com/a/5853994/3731823 -->
+    <table cellspacing=0 cellpadding=0 style="margin-top: 1em">
+        <tr>
+            <td><input class=arrow type=button value="&#9660;" id="downBtn"/></td>
+            <td><input class=arrow type=button value="&#9650;" id="upBtn"/></td>
+        </tr>
+        <tr>
+            <td><input class=arrow type=button value="&#9668;" id="leftBtn"/></td>
+            <td><input class=arrow type=button value="&#9658;" id="rightBtn"/></td>
+        </tr>
+    </table>
+    </center>
+    </div>
+</div>
+<script>
+var utils = {
+    zeros: function (len) { return Array.apply(null, Array(len)).map(Number.prototype.valueOf, 0); },
+    format: function (v) { return (v > 0 ? '+' : (v == 0 ? '&nbsp;&nbsp;&nbsp;' : '')) + v; }
+};
+
+var maps = [
+    { name: 'Tali', bars: [5, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 4] },
+    { name: 'Munkkiniemi', bars: [3, 3, 3, 3, 3, 3, 3, 3, 3] }
+];
+
+var state = {
+    state: 'start',
+    players: {},
+    map: 0
+};
+
+config = {
+    n_rows: 5
+};
+
+state.activePlayers = function () {
+    var result = [];
+    $.each(state.players, function (name, active) {
+        if (active) {
+            result.push(name);
+        }
+    });
+    
+    result.sort();
+    return result;
+};
+
+state.render = function () {
+    // I know it is silly to re-create the whole table from scratch every time
+    // but this is the simplest implementation.
+    var table = $('<table id=scoreTable borders=1 cellspacing=0 cellpadding=5></table>');
+    var map = maps[state.map];
+    
+    var row = $('<tr class=header></tr>').append($('<td></td>').append(
+        $('<input type=button value="&#9668;"/>').click(function () {
+            state.state = 'start';
+            $('#start').show();
+            $('#scores').hide();
+        })
+    ));
+    $.each(state.scores, function (i, score) {
+        row.append($('<td align=center>' + score.name.substr(0, 2) + '</td>'));
+    });
+    table.append(row);
+    
+    var row = $('<tr class=header></tr>').append($('<td align=right>T</td>'));
+    $.each(state.scores, function (i, score) {
+        row.append($('<td align=center>' + utils.format(score.total) + '</td>'));
+    });
+    table.append(row);
+    
+    var mapFrom = Math.max(0, state.row - config.n_rows + 2);
+    var mapTo = Math.min(map.bars.length - 1, state.row - 1 - (state.row - config.n_rows - mapFrom));
+    
+    for (var i = mapFrom; i <= mapTo; ++i) {
+        var row = $('<tr></tr>').append($('<td class=side align=right>' + (i+1) + '/' + map.bars[i] + '</td>'));
+        $.each(state.scores, function (j, score) {
+            var td = $('<td align=center>' + utils.format(score.rounds[i]) + '</td>');
+            
+            if (i == state.row && j == state.col) {
+                td.addClass('active');
+            }
+            
+            row.append(td);
+        });
+        table.append(row);
+    };
+    
+    $('#scoreTable').empty();
+    $('#scoreContainer').prepend(table);
+};
+
+state.click = function (arrow) {
+    if (state.state != 'scores') {
+        return;
+    }
+    
+    switch (arrow) {
+        case 'left':
+            if (--state.col == -1) {
+                if (state.row > 0) {
+                    state.col = state.scores.length - 1;
+                    --state.row;
+                }
+                else {
+                    state.col = 0;
+                }
+            }
+            break;
+        case 'right':
+            if (++state.col == state.scores.length) {
+                if (state.row + 1 < maps[state.map].bars.length) {
+                    state.col = 0;
+                    ++state.row;
+                }
+                else {
+                    state.col = state.scores.length - 1;
+                }
+            }
+            break;
+        case 'up':
+            ++state.scores[state.col].rounds[state.row];
+            ++state.scores[state.col].total;
+            break;
+        case 'down':
+            --state.scores[state.col].rounds[state.row];
+            --state.scores[state.col].total;
+    }
+    
+    state.render();
+};
+
+var startActive = function () {
+    var hasActive = false;
+    
+    $.each(state.players, function (name, active) {
+        if (active) {
+            hasActive = true;
+            return false;
+        }
+    });
+    
+    $('#startBtn').prop('disabled', !hasActive);
+};
+
+var keyMap = {
+    37: 'left',
+    38: 'up',
+    39: 'right',
+    40: 'down'
+};
+
+$(document).keydown(function(event) {
+    if (event.keyCode in keyMap) {
+        state.click(keyMap[event.keyCode]);
+    }
+});
+
+$(document).ready(function() {
+    var click = function () {
+        $('#start').hide();
+        $('#scores').show();
+        
+        var map = maps[state.map];
+        state.scores = [];
+        
+        $.each(state.activePlayers(), function (i, player) {
+            state.scores.push({
+                name: player,
+                rounds: utils.zeros(map.bars.length),
+                total: 0
+            });
+        });
+        
+        state.state = 'scores';
+        state.row = state.col = 0;
+        state.render();
+    };
+    
+    $('#startBtn').click(click);
+    
+    var ul = $('#players');
+    
+	$.each('Niko Mikko Jarno Riku Sami Antti'.split(' '), function (i, player) {
+        state.players[player] = false; // i <= 3 for easy development
+        var click = function() { return (state.players[player] = !state.players[player]); };
+        var checkbox = $('<input type=checkbox>').click(click);
+        
+        checkbox.prop('checked', state.players[player]);
+        
+        ul.append($('<li/>').append(checkbox)
+            .append($('<span> ' + player + '</span>').click(function () {
+                checkbox.prop('checked', click());
+                
+                startActive();
+            }))
+        );
+    });
+    
+    var ul = $('#maps');
+    
+    $.each(maps, function (i, map) {
+        var click = function() { state.map = i; };
+        var radio = $('<input type=radio name=map id=mapRadio value=' + i + (i == 0 ? ' checked' : '') + '>').click(click);
+        
+        ul.append($('<li/>').append(radio)
+            .append($('<span> ' + map.name + '</span>').click(function () {
+                click();
+                radio.prop('checked', 'checked');
+            }))
+        );
+    });
+    
+    $.each('up down left right'.split(' '), function (i, arrow) {
+        $('#' + arrow + 'Btn').click(function () {
+            state.click(arrow);
+        });
+    });
+    
+    startActive();
+});
+</script>
+</body>
+</html>
