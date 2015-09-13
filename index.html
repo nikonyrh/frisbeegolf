@@ -53,24 +53,28 @@
     </div>
 </div>
 <script>
-var utils = {
-    zeros: function (len) { return Array.apply(null, Array(len)).map(Number.prototype.valueOf, 0); },
-    format: function (v) { return (v > 0 ? '+' : (v == 0 ? '&nbsp;&nbsp;&nbsp;' : '')) + v; }
-};
-
+// Feel free to add your own, if there are too many we'll need to add text-based search
 var maps = [
     { name: 'Tali', bars: [5, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 4] },
     { name: 'Munkkiniemi', bars: [3, 3, 3, 3, 3, 3, 3, 3, 3] }
 ];
 
+// This should maybe be overridden by for example URL parameter
+var players = 'Niko Mikko Jarno Riku Sami Antti'.split(' ');
+
+config = {
+    n_rows: 5 // Maybe this should be resolution or screen size dependent
+};
+
+var utils = {
+    zeros: function (len) { return Array.apply(null, Array(len)).map(Number.prototype.valueOf, 0); },
+    format: function (v) { return (v > 0 ? '+' : (v == 0 ? '&nbsp;&nbsp;&nbsp;' : '')) + v; }
+};
+
 var state = {
     state: 'start',
     players: {},
     map: 0
-};
-
-config = {
-    n_rows: 5
 };
 
 state.activePlayers = function () {
@@ -109,8 +113,10 @@ state.render = function () {
     });
     table.append(row);
     
+    // This logic displays "config.n_rows" rows and avoids out-of-bounds indexes.
     var mapFrom = Math.max(0, state.row - config.n_rows + 2);
     var mapTo = Math.min(map.bars.length - 1, state.row - 1 - (state.row - config.n_rows - mapFrom));
+    mapFrom = Math.max(0, mapFrom - (config.n_rows - 1 - mapTo + mapFrom));
     
     for (var i = mapFrom; i <= mapTo; ++i) {
         var row = $('<tr></tr>').append($('<td class=side align=right>' + (i+1) + '/' + map.bars[i] + '</td>'));
@@ -170,7 +176,7 @@ state.click = function (arrow) {
     state.render();
 };
 
-var startActive = function () {
+var startBtnDisabledStatus = function () {
     var hasActive = false;
     
     $.each(state.players, function (name, active) {
@@ -197,7 +203,7 @@ $(document).keydown(function(event) {
 });
 
 $(document).ready(function() {
-    var click = function () {
+    var startClick = function () {
         $('#start').hide();
         $('#scores').show();
         
@@ -217,22 +223,26 @@ $(document).ready(function() {
         state.render();
     };
     
-    $('#startBtn').click(click);
+    $('#startBtn').click(startClick);
     
     var ul = $('#players');
     
-	$.each('Niko Mikko Jarno Riku Sami Antti'.split(' '), function (i, player) {
+	$.each(players, function (i, player) {
         state.players[player] = false; // i <= 3 for easy development
-        var click = function() { return (state.players[player] = !state.players[player]); };
-        var checkbox = $('<input type=checkbox>').click(click);
+        
+        var click = function() {
+            state.players[player] = !state.players[player];
+            startBtnDisabledStatus();
+            return state.players[player];
+        };
+        
+        var checkbox = $('<input type=checkbox>').click(function () { click(); });
         
         checkbox.prop('checked', state.players[player]);
         
         ul.append($('<li/>').append(checkbox)
             .append($('<span> ' + player + '</span>').click(function () {
                 checkbox.prop('checked', click());
-                
-                startActive();
             }))
         );
     });
@@ -253,11 +263,12 @@ $(document).ready(function() {
     
     $.each('up down left right'.split(' '), function (i, arrow) {
         $('#' + arrow + 'Btn').click(function () {
+            $(this).blur();
             state.click(arrow);
         });
     });
     
-    startActive();
+    startBtnDisabledStatus();
 });
 </script>
 </body>

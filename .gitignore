@@ -8,3 +8,5 @@
 !.ht*
 !*.js
 !*.conf
+!*.md
+!LICENSE
