@@ -89,6 +89,16 @@ state.activePlayers = function () {
     return result;
 };
 
+state.updateScore = function () {
+    $('#round_' + state.row + '_' + state.col).empty().append(utils.format(state.scores[state.col].rounds[state.row]));
+    $('#total_' + state.col).empty().append(utils.format(state.scores[state.col].total));
+};
+
+state.updateActive = function () {
+    $('td.active').removeClass('active');
+    $('#round_' + state.row + '_' + state.col).addClass('active');
+};
+
 state.render = function () {
     // I know it is silly to re-create the whole table from scratch every time
     // but this is the simplest implementation.
@@ -109,7 +119,7 @@ state.render = function () {
     
     var row = $('<tr class=header></tr>').append($('<td align=right>T</td>'));
     $.each(state.scores, function (i, score) {
-        row.append($('<td align=center>' + utils.format(score.total) + '</td>'));
+        row.append($('<td align=center id="total_' + i + '">' + utils.format(score.total) + '</td>'));
     });
     table.append(row);
     
@@ -121,7 +131,7 @@ state.render = function () {
     for (var i = mapFrom; i <= mapTo; ++i) {
         var row = $('<tr></tr>').append($('<td class=side align=right>' + (i+1) + '/' + map.bars[i] + '</td>'));
         $.each(state.scores, function (j, score) {
-            var td = $('<td align=center>' + utils.format(score.rounds[i]) + '</td>');
+            var td = $('<td align=center id="round_' + i + '_' + j + '">' + utils.format(score.rounds[i]) + '</td>');
             
             if (i == state.row && j == state.col) {
                 td.addClass('active');
@@ -147,10 +157,15 @@ state.click = function (arrow) {
                 if (state.row > 0) {
                     state.col = state.scores.length - 1;
                     --state.row;
+                    
+                    state.render();
                 }
                 else {
                     state.col = 0;
                 }
+            }
+            else {
+                state.updateActive();
             }
             break;
         case 'right':
@@ -158,22 +173,28 @@ state.click = function (arrow) {
                 if (state.row + 1 < maps[state.map].bars.length) {
                     state.col = 0;
                     ++state.row;
+                    
+                    state.render();
                 }
                 else {
                     state.col = state.scores.length - 1;
                 }
             }
+            else {
+                state.updateActive();
+            }
             break;
         case 'up':
             ++state.scores[state.col].rounds[state.row];
             ++state.scores[state.col].total;
+            state.updateScore();
             break;
         case 'down':
             --state.scores[state.col].rounds[state.row];
             --state.scores[state.col].total;
+            state.updateScore();
+            break;
     }
-    
-    state.render();
 };
 
 var startBtnDisabledStatus = function () {
@@ -227,7 +248,7 @@ $(document).ready(function() {
     
     var ul = $('#players');
     
-	$.each(players, function (i, player) {
+    $.each(players, function (i, player) {
         state.players[player] = false; // i <= 3 for easy development
         
         var click = function() {

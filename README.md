@@ -15,7 +15,7 @@ All interactions occur via four buttons with following actions (also bound to PC
 
 TODO
 --------
-- Nicer UI, better auto-scaling for mobile 
+- Nicer UI, better auto-scaling for mobile
 - User-defined list of player names
 - Persistence on localStorage, checking of results on earlier games
 - Optional synchronization to "cloud", possibly written in PHP
